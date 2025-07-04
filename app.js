@@ -19,20 +19,47 @@ mongoose.connect(dbURI)
 app.set('view engine','ejs')
 
 app.use(morgan("dev"))
-
+app.use(express.urlencoded({extended:true}))
 app.use(express.static('public'))
 
 
-app.get("/add-blog",(req,res)=>{
-    const blog=new Blog({
-        title:"My Blog",
-        snippet:"about my blog",
-        body:"more about my new blog"
-    })
+app.get("/",(req,res)=>{
+    res.redirect("/blogs")
+})
 
+app.get("/about",(req,res)=>{
+    res.render("about",{title:"About"})
+})
+app.get("/blogs/create",(req,res)=>{
+    res.render("create",{title:"Create"})
+})
+
+app.get("/blogs",(req,res)=>{
+    Blog.find().sort({createdAt:-1})
+    .then((result)=>{
+        res.render("index",{title:"All Blogs",blogs:result})
+    })
+    .catch((err)=>{
+        console.log(err);
+    })
+})
+
+app.post("/blogs",(req,res)=>{
+    const blog=new Blog(req.body)
     blog.save()
     .then((result)=>{
-        res.send(result)
+        res.redirect("/blogs")
+    })
+    .catch((err)=>{
+        console.log(err);
+    })
+})
+
+app.get("/blogs/:id",(req,res)=>{
+    const id=req.params.id;
+    Blog.findById(id)
+    .then((result)=>{
+        res.render("details",{blog:result,title:"Blog Details"})
     })
     .catch((err)=>{
         console.log(err);
@@ -40,27 +67,19 @@ app.get("/add-blog",(req,res)=>{
     })
 })
 
-app.get("/all-blogs",(req,res)=>{
-    Blog.find()
+app.delete("/blogs/:id",(req,res)=>{
+    const id=req.params.id
+    Blog.findByIdAndDelete(id)
     .then((result)=>{
-        res.send(result)
+        res.json({redirect:"/blogs"})
     })
     .catch((err)=>{
-        console.log(err);  
+        console.log(err);
+        
     })
 })
 
-app.get("/",(req,res)=>{
-    res.render("index",{title:"Home"})
-})
 
-app.get("/about",(req,res)=>{
-    res.render("about",{title:"About"})
-})
-
-app.get("/blogs/create",(req,res)=>{
-    res.render("create",{title:"Create"})
-})
 
 app.use((req,res)=>{
     res.status(404).render("404",{title:"Error 404"})
